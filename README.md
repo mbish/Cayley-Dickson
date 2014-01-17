@@ -7,11 +7,17 @@ This is pretty much just a perl eval loop so: if you can perl-it you can do it.
 Usage
 -----
 
+Controls
+*********
+If you have readline installed you should get most of the tools for looking through your command history other wise hit return to end a command.
+
 Element
+****
    * Elements can be specified as real numbers or pairs of the form [a,b] where a and b are elemnts of the same dimension
    * Note: In a pair, you must pair an element with another element of the same dimension
 
 Function
+****
 <pre>
    * mult(a,b) - multiplies two elements
    * conj(a)   - conjugates an element
@@ -19,6 +25,7 @@ Function
    * add(a,b)  - adds two elements
 </pre>
 Notation
+*****
     ei is used as the basis of the i'th dimension in a vector space with e0 being the real part
 
 Example
