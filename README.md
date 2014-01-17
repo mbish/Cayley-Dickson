@@ -1,12 +1,15 @@
 === Cayley-Dickson Perl Shell ===
+
 This is pretty much just a perl eval loop so: if you can perl-it you can do it.
 
 
 Element
+
     * Elements can be specified as real numbers or pairs of the form [a,b] where a and b are elemnts of the same dimension
     * Note: In a pair, you must pair an element with another element of the same dimension
 
 Function
+
     * mult - multiplies two elements
     * conj - conjugates an element
     * neg  - returns negation of an element
@@ -16,6 +19,8 @@ Notation
     ei is used as the basis of the i'th dimension in a vector space with e0 being the real part
 
 Example
+
+
     Basics:
         >> our $a = mult(2,2)
         4e0
@@ -34,5 +39,3 @@ Example
 
         >> mult($b, $a)
         9e0 + 20e1 + 29e2 + 32e3
-
-WELCOME
