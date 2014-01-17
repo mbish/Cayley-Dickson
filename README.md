@@ -6,9 +6,20 @@ This is pretty much just a perl eval loop so: if you can perl-it you can do it.
 
 Usage
 -----
-
+****
 **Controls**
+
 If you have readline installed you should get most of the tools for looking through your command history other wise hit return to end a command.
+
+Variable declerations are done with:
+
+  our $x = 2
+
+and are always refered to with a sigil ($) in front of their name:
+
+  $a = $b 
+
+and things like this are perfectly valid.
 
 *********
 **Element**
