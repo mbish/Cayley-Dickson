@@ -23,8 +23,9 @@ and things like this are perfectly valid.
 
 *********
 **Element**
-   * Elements can be specified as real numbers or pairs of the form [a,b] where a and b are elemnts of the same dimension
+   * Elements can be specified as real numbers or pairs of the form [a,b] where a and b are elements of the same dimension
    * Note: In a pair, you must pair an element with another element of the same dimension
+   * Examples: 1 = 1, [1,2] = 1 + 2i, [[1,2],[1,2]] = 1 + 2i + 1j + 2k 
 
 ****
 **Functions**
