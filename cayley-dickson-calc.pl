@@ -7,6 +7,7 @@ use Data::Dumper;
 use CayleyDicksonAlgebra;
 use Term::ReadLine;
 
+our ($a,$b,$c,$d,$e,$f,$g,$h,$i,$j,$k,$l,$m,$n,$o,$p,$q,$r,$s,$t,$u,$v,$w,$x,$y,$z);
 my $algebra = CayleyDicksonAlgebra->new(1);
 my $term = Term::ReadLine->new('CayleyDickson Input');
 my $prompt = ">> ";
@@ -52,16 +53,18 @@ Example
 
 WELCOME
 
-print $welcome;
 
-
-my $line;
-while(defined($line = $term->readline($prompt))) {
-    print eval "human($line)","\n";
-    if($@) {
-        print "Last command died: ".$@;
-    }
-}
+print Dumper(generate_cayley_table(1));
+#print $welcome;
+#
+#
+#my $line;
+#while(defined($line = $term->readline($prompt))) {
+#    print eval "human($line)","\n";
+#    if($@) {
+#        print "Last command died: ".$@;
+#    }
+#}
 
 sub human {
     my ($element) = (@_);
@@ -161,5 +164,73 @@ sub conj {
     }
     else {
         return $element;
+    }
+}
+
+sub generate_cayley_table {
+    my ($dimension) = (@_);
+    my $table = [['A0']];
+    if(!defined(ref($dimension))) {
+        return [1];
+    }
+    else {
+        decompose($table, $dimension);
+    }
+}
+
+
+sub decompose {
+
+our $map = {
+    'A0' =>[['A0', 'A'], ['B', '-B']],
+    A => [['A', 'A'], ['C', '-C']],
+    B => [['B', '-C'], ['B', 'C']],
+    '-B' => [['-B', 'C'], ['-C', '-B']],
+    'C' =>  [['C', '-C'], ['-C', '-C']],
+    '-C' => [['-C', 'C'], ['C', 'C']],
+};
+
+our $final = {
+    A0 => [[1, 1], [1,-1]],
+    A => [[1,1], [1,-1]],
+    B => [[1,-1], [1,1]],
+    '-B' => [[-1,1],[-1,-1]],
+    'C' => [[1,-1],[-1,-1]],
+    '-C' => [[-1,1],[1,1]],
+};
+
+    my ($table, $dimension) = (@_);
+    my $new_table = [];
+    my $current_row = 0;
+
+    if($dimension == 0) {
+        for my $col (@$table) {
+            $new_table->[$current_row] ||= [];
+            $new_table->[$current_row+1] ||= [];
+            for my $row (@$col) {
+                my $matrix = $final->{$row};
+                my $row1 = $matrix->[0];
+                my $row2 = $matrix->[1];
+                push(@{$new_table->[$current_row]}, @{$row1});
+                push(@{$new_table->[$current_row+1]}, @{$row2});
+            }
+            $current_row += 2;
+        }
+        return $new_table;
+    }
+    else {
+        for my $col (@$table) {
+            $new_table->[$current_row] ||= [];
+            $new_table->[$current_row+1] ||= [];
+            for my $row (@$col) {
+                my $matrix = $map->{$row};
+                my $row1 = $matrix->[0];
+                my $row2 = $matrix->[1];
+                push(@{$new_table->[$current_row]}, @{$row1});
+                push(@{$new_table->[$current_row+1]}, @{$row2});
+            }
+            $current_row += 2;
+        }
+        decompose($new_table, $dimension - 1);
     }
 }
