@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Data::Dumper;
+use BasedNumber;
 
 use Term::ReadLine;
 
@@ -52,17 +53,16 @@ Example
 WELCOME
 
 
-print Dumper(generate_cayley_table(1));
-#print $welcome;
-#
-#
-#my $line;
-#while(defined($line = $term->readline($prompt))) {
-#    print eval "human($line)","\n";
-#    if($@) {
-#        print "Last command died: ".$@;
-#    }
-#}
+print $welcome;
+
+
+my $line;
+while(defined($line = $term->readline($prompt))) {
+    print eval "Dumper($line)","\n";
+    if($@) {
+        print "Last command died: ".$@;
+    }
+}
 
 sub human {
     my ($element) = (@_);
@@ -72,7 +72,7 @@ sub human {
     my $count = 0;
     foreach my $mag (@$list) {
         $string .= " + " if($string);
-        $string .= "$mag"."e$count";
+        $string .= $mag->string();
         ++$count;
     }
     return $string;
@@ -80,8 +80,11 @@ sub human {
 
 sub decend {
     my ($element, $list) = (@_);
+    #print "Got element ".Dumper($element);
     my $list2 = [];
-    if(!ref($element)) {
+    use Carp qw(longmess);
+    die "Got non-ref element ".Dumper($element)."\n".longmess() if(!ref($element));
+    if(ref($element) eq 'BasedNumber') {
         push(@$list, $element);
     }
     else {
@@ -92,11 +95,62 @@ sub decend {
     return @$list2;
 }
 
+sub taged {
+    my ($element) = (@_);
+    my $ref = ref($element);
+    if($ref eq 'BasedNumber') {
+        return 1;
+    }
+    elsif($ref eq 'ARRAY') {
+        foreach my $part (@$element) {
+            return taged($part);
+        }
+    }
+    return 0;
+}
+
+sub tag {
+    my ($input, $basis) = (@_);
+    $basis ||= 0;
+
+    my $helper;
+    $helper = sub {
+        my ($element, $depth, $num) = (@_);
+        
+        if(!ref($element)) {
+            my $result = BasedNumber->new($element,$num % 2**$depth);
+	    return $result;
+        }
+        else {
+	    my $count = 0;
+            foreach my $part (@$element) {
+	        $element->[$count] = $helper->($part, $depth + 1, $count);
+		$count++;
+            }
+	    return $element;
+        }
+    };
+    my $result = $helper->($input, $basis);
+    return $result;
+}
+
 sub mult {
     my ($el1, $el2) = (@_);
-    if(!ref($el1)) {
-        if(!ref($el2)) {
-            return $el1 * $el2;
+    if(!taged($el1)) {
+        $el1 = tag($el1);
+    }
+    if(!taged($el2)) {
+        $el2 = tag($el2);
+    }
+    print "(".human($el1).") * (".human($el2).") = ";
+    if(ref($el1) eq 'BasedNumber') {
+        if(ref($el2) eq 'BasedNumber') {
+	    # print "Multiplying ".Dumper($el1)." with ".Dumper($el2);
+	    my $sign = basis_prod($el1->base(),$el2->base());
+	    my $base = $el1->base() ^ $el2->base();
+            my $result = BasedNumber->new($sign*$el1->num()*$el2->num(), $base);
+	    print "(".human($result).")\n";
+	    return $result;
         }
         else {
             die "Mismatched dimensions between elemnts\n"."left side: ".Dumper($el1)."right side: ".Dumper($el2);
@@ -116,15 +170,53 @@ sub mult {
         die "Inconsistant references between multiplication elements\n"."left side: ".Dumper($el1)."right side: ".Dumper($el2);
     }
 
-    # how are we handling negation
-    return [add(mult($a, $c), neg(mult(conj($d),$b))), add(mult($d, $a), mult($b, conj($c)))];
+    print "\nNext level of recursion\n";
+    my $result = [add(mult($a, $c), neg(mult($d,conj($b)))), add(mult(conj($a),$d), mult($c, $b))];
+
+    print "(".human($result).")\n";
+    return $result;
+}
+
+sub basis_prod {
+    my ($base1, $base2) = (@_);
+    # print "Calculating base product for $base1 and $base2\n";
+    my $twist = twist_entry($base1,$base2);
+    return $twist;
+}
+
+sub twist_entry {
+    my ($base1, $base2) = (@_);
+    my $dimension = (sort ($base1, $base2))[1];
+    if($dimension == 0) {
+    	return 1;
+    }
+    my $table = generate_cayley_table($dimension);
+    return $table->[$base1]->[$base2];
 }
 
 sub add {
     my ($el1, $el2) = (@_);
-    if(!ref($el1)) {
-        if(!ref($el2)) {
-            return $el1 + $el2;
+    print "(".human($el1).") + (".human($el2).")";
+
+    if(!taged($el1)) {
+        $el1 = tag($el1);
+    }
+    if(!taged($el2)) {
+        $el2 = tag($el2);
+    }
+    if(ref($el1) eq 'BasedNumber') {
+        if(ref($el2) eq 'BasedNumber') {
+	    if($el1->base() eq $el2->base()) {
+		my $base = $el1->base();
+                my $result = BasedNumber->new($el1->num() + $el2->num(),$base);
+                print " = ".human($result)."\n";
+		return $result;
+	    }
+	    else {
+	        my $result = [$el1, $el2];
+                print " = ".human($result)."\n";
+		return $result;
+	    }
         }
         else {
             die "Mismatched dimensions between elemnts\n"."left side: ".Dumper($el1)."right side: ".Dumper($el2);
@@ -136,29 +228,41 @@ sub add {
     my $c = $el2->[0];
     my $d = $el2->[1];
     if(ref($a) ne ref($b) || ref($a) ne ref($c) || ref($a) ne ref($d)) {
-        die "Inconsistant references between multiplication elements\n"."left side: ".Dumper($el1)."right side: ".Dumper($el2);
+        die "Inconsistant references between addition elements\n"."left side: ".Dumper($el1)."right side: ".Dumper($el2);
     }
-    return [add($a, $b), add($b, $d)];
+    print "\nNext level of recursion\n";
+    my $result = [add($a, $c), add($b, $d)];
+    print " = ".human($result)."\n";
+    return $result;
 }
 
 sub neg {
     my ($element) = (@_);
-    if(ref($element)) {
+    print "-(".human($element).") = ";
+    if(ref($element) eq 'ARRAY') {
         my $a = $element->[0];
         my $b = $element->[1];
-        return [neg($a), neg($b)];
+	my $result = [neg($a), neg($b)];
+	print "(".human($result).")\n";
+	return $result;
     }
     else {
-        return -$element;
+	my $result = BasedNumber->new(-$element->num(), $element->base());
+	print " (".human($result).")\n";
+	return $result;
     }
 }
 
 sub conj {
     my ($element) = (@_);
-    if(ref($element)) {
+    if(ref($element) eq 'ARRAY') {
+        if(!taged($element)) {
+            $element = tag($element);
+        }
         my $a = $element->[0];
         my $b = $element->[1];
-        return [conj($a), neg($b)];
+	my $result = [conj($a), neg($b)];
+	return $result;
     }
     else {
         return $element;
